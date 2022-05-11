@@ -25,21 +25,9 @@ class LSTM_ANNO(nn.Module):
     def forward(self, x):
         state = None
         gru_output, (h_n) = self.gru1(x, state)
-        print('gru_output org', gru_output.size())
         gru1_output = gru_output.clone()
-        # print('gru1 output', gru1_output.size())
         gru_output, (h_n) = self.gru2(gru_output)
-        # print('gru2 output', gru2_output.shape)
-        print('gru_output 1', gru_output.size())
         gru_output = self.relu(self.fc1(gru_output[:, -1, :]))
-        print('gru_output 2', gru_output.size())
-        # print('gru_output size:', gru_output.size())
-        # gru_output = self.dropout(gru_output)
-
-        # print('gru_out_put', gru_output.size())
-        # r2_gru = gru2_output.view(20, 144*512)
-        # print('size', r2_gru.shape)
-        # final_score = self.fc_final_score(r2_gru)
         final_score = self.fc_final_score(gru_output)
 
         return final_score, gru1_output
