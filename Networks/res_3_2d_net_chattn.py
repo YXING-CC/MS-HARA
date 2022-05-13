@@ -52,11 +52,6 @@ class ChannelGate_layer1(nn.Module):
                 channel_att_sum = channel_att_raw
             else:
                 channel_att_sum = channel_att_sum + channel_att_raw
-        
-        # print('channel_att_raw.size:', channel_att_raw.size())
-        # print('channel_att_raw', channel_att_raw, 'channel_att_raw softmax:', nn.Softmax(dim=1)(channel_att_raw))
-        # print('max', torch.max(torch.sigmoid(channel_att_sum),1).indices)
-        # print('torch.sigmoid channel_att_raw', torch.sigmoid(channel_att_sum))
 
         scale = torch.sigmoid(channel_att_raw).unsqueeze(2).unsqueeze(3).unsqueeze(4).expand_as(x)
         # print('scale.size()',scale, scale.size())
@@ -515,25 +510,16 @@ class res_3_2d_net(nn.Module):
             # update key names for the pretrained model
             for ind in range(len(keys_org)):
                 state_dict_chg_3d[new_key[ind]] = state_dict_chg_3d.pop(keys_org[ind])
-            # print('pretrained state_dict', len(list(state_dict_chg_3d.keys())), state_dict_chg_3d)
-
             s_dict = self.state_dict()
 
             pretrained_dict_3d = {k: v for k, v in state_dict_chg_3d.items() if k in s_dict}
-            # print('pretrained_dict_3d', pretrained_dict_3d)
-            # print('self.state_dict() before', len(list(self.state_dict().keys())), s_dict)
             s_dict.update(pretrained_dict_3d)
-            # print('self.state_dict() after', len(list(self.state_dict().keys())), s_dict)
-
             self.load_state_dict(s_dict)
-
-        # print('self.state_dict after load', self.state_dict())
 
         if pretrained_2d:
             state_dict_2d = load_state_dict_from_url(model_urls[arch_2d], progress=progress)
             keys_org_2d = list(state_dict_2d.keys())
             state_dict_chg_2d = state_dict_2d
-            # print('state_dict_chg_2d', state_dict_chg_2d)
             # Generate new key names which equals to the model's key
             new_key_2d = []
             for keys in state_dict_chg_2d:
@@ -546,19 +532,11 @@ class res_3_2d_net(nn.Module):
             for ind in range(len(keys_org_2d)):
                 state_dict_chg_2d[new_key_2d[ind]] = state_dict_chg_2d.pop(keys_org_2d[ind])
 
-            # for keys in state_dict_chg_2d:
-                # print('prestarined model keys:', keys)
-
             s_dict = self.state_dict()
-            # for keys in s_dict:
-                # print('model_state_dict:', keys)
 
             pretrained_dict_2d = {k: v for k, v in state_dict_chg_2d.items() if k in s_dict}
-            # print('pretrained_dict_2d', pretrained_dict_2d)
             s_dict.update(pretrained_dict_2d)
             self.load_state_dict(s_dict)
-
-        # print('self.state_dict', self.state_dict())
 
     def forward(self, x_vid, x_im):
     
@@ -572,44 +550,32 @@ class res_3_2d_net(nn.Module):
         # Layer 1 Fusion
         x_vid = self.layer1_3d(x_vid)
         x_im = self.layer1_2d(x_im)
-
-        # print('layer1->x_vid.size:', x_vid.size(), 'x_im.size:', x_im.size())
         x_att = self.ChannelGate1(x_vid)
-        # print('x_att.size:', x_att.size())
         x_att = self.spatial_pathway1(x_att)
         x_im = x_im*x_att
 
         # Layer 2 Fusion
         x_vid = self.layer2_3d(x_vid)
         x_im = self.layer2_2d(x_im)
-
-        # print('layer2->x_vid.size:', x_vid.size(), 'x_im.size:', x_im.size())
         x_att = self.ChannelGate2(x_vid)
-        # print('x_att.size:', x_att.size())
         x_att = self.spatial_pathway2(x_att)
         x_im = x_im*x_att
 
         # Layer 3 Fusion
         x_vid = self.layer3_3d(x_vid)
         x_im = self.layer3_2d(x_im)
-
-        # print('layer3->x_vid.size:', x_vid.size(), 'x_im.size:', x_im.size())
         x_att = self.ChannelGate3(x_vid)
-        # print('x_att.size:', x_att.size())
         x_att = self.spatial_pathway3(x_att)
         x_im = x_im*x_att
 
         # Layer 4 Fusion
         x_vid = self.layer4_3d(x_vid)
         x_im = self.layer4_2d(x_im)
-
-        # print('layer4->x_vid.size:', x_vid.size(), 'x_im.size:', x_im.size())
         x_att = self.ChannelGate4(x_vid)
-        # print('x_att.size:', x_att.size())
         x_att = self.spatial_pathway4(x_att)
         x_im = x_im*x_att
 
-        #
+      
         x_vid = self.avgpool_3d(x_vid)
         x_im = self.avgpool_2d(x_im)
 
@@ -690,19 +656,7 @@ def get_1x_lr_params(model):
         for k in b[i].parameters():
             if k.requires_grad:
                 yield k
-
-def get_10x_lr_params(model):
-    """
-    This generator returns all the parameters for the last fc layer of the net.
-    """
-    b = [model.layer1_c1, model.layer1_c2, model.layer1_c3, model.layer2_c1, model.layer2_c2, model.layer2_c3,
-         model.layer3_c1, model.layer3_c2, model.layer3_c3, model.layer4_c1]
-    # b = [model.lstm1]
-    for j in range(len(b)):
-        for k in b[j].parameters():
-            if k.requires_grad:
-                yield k
-
+                
 
 if __name__ == "__main__":
     pretrained_3d = True
