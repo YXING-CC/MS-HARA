@@ -1,6 +1,6 @@
 # MS-HARA
 
-The raw implementation of Multi-Scale Human Activity Recogniton and Anticipation.
+The original implementation of Multi-Scale Human Activity Recogniton and Anticipation.
 
 To upload List:
 1. Model training 
