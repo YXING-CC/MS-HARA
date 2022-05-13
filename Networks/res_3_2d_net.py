@@ -301,18 +301,12 @@ class res_3_2d_net(nn.Module):
         # 3d-2d fusion conv layers
 
         # layer1 fusion
-        # self.layer1_c1 = nn.Conv3d(in_channels=16, out_channels=4, kernel_size=3, padding=1)
-        # self.layer1_c2 = nn.Conv3d(in_channels=4, out_channels=1, kernel_size=3, padding=1)
         self.layer1_c3 = nn.Conv3d(in_channels=16, out_channels=1, kernel_size=3, padding=1)
 
         # layer2 fusion
-        # self.layer2_c1 = nn.Conv3d(in_channels=8, out_channels=4, kernel_size=3, padding=1)
-        # self.layer2_c2 = nn.Conv3d(in_channels=4, out_channels=1, kernel_size=3, padding=1)
         self.layer2_c3 = nn.Conv3d(in_channels=8, out_channels=1, kernel_size=3, padding=1)
 
         # layer3 fusion
-        # self.layer3_c1 = nn.Conv3d(in_channels=4, out_channels=2, kernel_size=3, padding=1)
-        # self.layer3_c2 = nn.Conv3d(in_channels=2, out_channels=1, kernel_size=3, padding=1)
         self.layer3_c3 = nn.Conv3d(in_channels=4, out_channels=1, kernel_size=3, padding=1)
 
         # layer4 fusion
@@ -361,25 +355,16 @@ class res_3_2d_net(nn.Module):
             # update key names for the pretrained model
             for ind in range(len(keys_org)):
                 state_dict_chg_3d[new_key[ind]] = state_dict_chg_3d.pop(keys_org[ind])
-            # print('pretrained state_dict', len(list(state_dict_chg_3d.keys())), state_dict_chg_3d)
-
             s_dict = self.state_dict()
 
             pretrained_dict_3d = {k: v for k, v in state_dict_chg_3d.items() if k in s_dict}
-            # print('pretrained_dict_3d', pretrained_dict_3d)
-            # print('self.state_dict() before', len(list(self.state_dict().keys())), s_dict)
             s_dict.update(pretrained_dict_3d)
-            # print('self.state_dict() after', len(list(self.state_dict().keys())), s_dict)
-
             self.load_state_dict(s_dict)
-
-        # print('self.state_dict after load', self.state_dict())
 
         if pretrained_2d:
             state_dict_2d = load_state_dict_from_url(model_urls[arch_2d], progress=progress)
             keys_org_2d = list(state_dict_2d.keys())
             state_dict_chg_2d = state_dict_2d
-            # print('state_dict_chg_2d', state_dict_chg_2d)
             # Generate new key names which equals to the model's key
             new_key_2d = []
             for keys in state_dict_chg_2d:
@@ -391,14 +376,8 @@ class res_3_2d_net(nn.Module):
             # update key names for the pretrained model
             for ind in range(len(keys_org_2d)):
                 state_dict_chg_2d[new_key_2d[ind]] = state_dict_chg_2d.pop(keys_org_2d[ind])
-
-            # for keys in state_dict_chg_2d:
-                # print('prestarined model keys:', keys)
-
+                
             s_dict = self.state_dict()
-            # for keys in s_dict:
-                # print('model_state_dict:', keys)
-
             pretrained_dict_2d = {k: v for k, v in state_dict_chg_2d.items() if k in s_dict}
             # print('pretrained_dict_2d', pretrained_dict_2d)
             s_dict.update(pretrained_dict_2d)
@@ -419,56 +398,26 @@ class res_3_2d_net(nn.Module):
         x_vid = self.layer1_3d(x_vid)
         x_im = self.layer1_2d(x_im)
 
-        # # print('x_vid.size:', x_vid.size(), 'x_im.size:', x_im.size())
         x_vid1 = x_vid.permute((0, 2, 1, 3, 4))
-        # x_im1_1 = self.layer1_c1(x_vid1)
-        # x_im1_1 = self.layer1_c2(x_im1_1)
-
         x_im1_2 = self.layer1_c3(x_vid1)
-        # x_im1_2 = torch.sigmoid(x_im1_2)
-
-        # x_im1 = x_im1_1 + x_im1_2
-
         x_im1 = x_im1_2.squeeze()
-        # cos_loss = self.cos(x_im, x_im1).abs().mean()
         x_im = x_im*x_im1
 
         # Layer 2 Fusion
         x_vid = self.layer2_3d(x_vid)
         x_im = self.layer2_2d(x_im)
 
-        # print('x_vid.size:', x_vid.size(), 'x_im.size:', x_im.size())
         x_vid2 = x_vid.permute((0, 2, 1, 3, 4))
-        # x_im2_1 = self.layer2_c1(x_vid2)
-        # x_im2_1 = self.layer2_c2(x_im2_1)
-
         x_im2_2 = self.layer2_c3(x_vid2)
-        # x_im2_2 = torch.sigmoid(x_im2_2)
-
-        # x_im2 = x_im2_1 + x_im2_2
-
         x_im2 = x_im2_2.squeeze()
-        # cos_loss += self.cos(x_im, x_im2).abs().mean()
-
         x_im = x_im*x_im2
 
         # Layer 3 Fusion
         x_vid = self.layer3_3d(x_vid)
         x_im = self.layer3_2d(x_im)
-
-        # print('x_vid.size:', x_vid.size(), 'x_im.size:', x_im.size())
         x_vid3 = x_vid.permute((0, 2, 1, 3, 4))
-        # x_im3_1 = self.layer3_c1(x_vid3)
-        # x_im3_1 = self.layer3_c2(x_im3_1)
-
         x_im3_2 = self.layer3_c3(x_vid3)
-        # x_im3_2 = torch.sigmoid(x_im3_2)
-
-        # x_im3 = x_im3_1 + x_im3_2
-
         x_im3 = x_im3_2.squeeze()
-        # cos_loss += self.cos(x_im, x_im3).abs().mean()
-
         x_im = x_im*x_im3
 
         # Layer 4 Fusion
@@ -477,11 +426,7 @@ class res_3_2d_net(nn.Module):
         #
         x_vid4 = x_vid.permute((0, 2, 1, 3, 4))
         x_im4_2 = self.layer4_c1(x_vid4)
-        # x_im4_2 = torch.sigmoid(x_im4_2)
-
         x_im4_2_squ = x_im4_2.squeeze()
-        # cos_loss += self.cos(x_im, x_im4_2_squ).abs().mean()
-
         x_im = x_im*x_im4_2_squ
 
         #
@@ -567,17 +512,6 @@ def get_1x_lr_params(model):
             if k.requires_grad:
                 yield k
 
-def get_10x_lr_params(model):
-    """
-    This generator returns all the parameters for the last fc layer of the net.
-    """
-    b = [model.layer1_c1, model.layer1_c2, model.layer1_c3, model.layer2_c1, model.layer2_c2, model.layer2_c3,
-         model.layer3_c1, model.layer3_c2, model.layer3_c3, model.layer4_c1]
-    # b = [model.lstm1]
-    for j in range(len(b)):
-        for k in b[j].parameters():
-            if k.requires_grad:
-                yield k
 
 
 if __name__ == "__main__":
